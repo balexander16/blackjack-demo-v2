@@ -15,43 +15,55 @@ import java.util.List;
 
 public class MainViewModel extends ViewModel {
 
-  private MutableLiveData<Deck> deck;
-  private MutableLiveData<Hand> hand;
-  private MutableLiveData<List<Card>> cards;
+  private static final int DECKS_IN_SHOE = 6;
+  private static final int INITIAL_DRAW = 2;
 
-  public LiveData<Deck> getDeck() {
-    if(deck == null){
-      deck = new MutableLiveData<>();
-    }
+  private MutableLiveData<Deck> deck = new MutableLiveData<>();
+  private MutableLiveData<Hand> hand = new MutableLiveData<>();
+  private MutableLiveData<List<Card>> cards = new MutableLiveData<>();
+
+  public MainViewModel() {
+    createDeck();
+  }
+
+  public MutableLiveData<Deck> getDeck() {
+//    if(deck == null){
+//      deck = new MutableLiveData<>();
+//    }
     return deck;
   }
 
-  public LiveData<Hand> getHand() {
-    if(hand == null){
-      hand = new MutableLiveData<>();
-    }
+  public MutableLiveData<Hand> getHand() {
+//    if(hand == null){
+//      hand = new MutableLiveData<>();
+//    }
     return hand;
   }
 
   public LiveData<List<Card>> getCards() {
-    if(cards == null){
-      cards = new MutableLiveData<>();
-    }
+//    if(cards == null){
+//      cards = new MutableLiveData<>();
+//    }
     return cards;
   }
-  //How many decks are in the shoe!
-  public void initDeck(int numDecks){
-    DeckOfCardsService.getInstance().newDeck(numDecks)
-        .subscribeOn(Schedulers.io())
-        .observeOn(AndroidSchedulers.mainThread())        //smart thread scheduler.
-        .subscribe(deck::postValue);  //FIXME add this to a disposable container. its ya boy trashcan
-  }
+//  //How many decks are in the shoe!
+//  public void initDeck(int numDecks){
+//    DeckOfCardsService.getInstance().newDeck(numDecks)
+//        .subscribeOn(Schedulers.io())
+//        .observeOn(AndroidSchedulers.mainThread())        //smart thread scheduler.
+//        .subscribe(deck::postValue);  //FIXME add this to a disposable container. its ya boy trashcan
+//  }
 
   public void shuffle() {
     DeckOfCardsService.getInstance().shuffle(deck.getValue().getId())
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
-        .subscribe((d) -> initHand()); //FIXME add to a disposable container.
+        .subscribe((d) -> deal()); //FIXME add to a disposable container.
+  }
+
+  public void deal(){
+    hand.setValue(new Hand());
+    draw(INITIAL_DRAW);
   }
 
   public void draw(int numCards) {
@@ -61,16 +73,28 @@ public class MainViewModel extends ViewModel {
         .subscribe(this::addToHand); //FIXME add this to ya boy trashcan
   }
 
+  private void createDeck(){
+    DeckOfCardsService.getInstance().newDeck(DECKS_IN_SHOE)
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribe((deck) -> {
+          this.deck.setValue(deck);
+          deal();
+        });
+  }
+
   public void initHand(){
     hand.postValue(new Hand());  //postValue is asycronus more flexible then setValue
   }
 
   private void addToHand(Draw draw){
     Hand hand = getHand().getValue();
-    for (Card card : draw.getCards()){
+    for (Card card : draw.getCards()) {
       hand.addCard(card);
     }
     cards.postValue(hand.getCards());
   }
+
+
 
 }
